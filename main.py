@@ -109,7 +109,7 @@ def create_user_endpoint(user: schemas.UserCreate, db: Session = Depends(get_db)
     return create_user(db=db, user=user)
 
 
-@app.post("/users/{user_id}/items/")
+@app.post("/users/{user_id}/items/", response_model=schemas.Item)
 def create_item_for_user(
     user_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)
 ):
