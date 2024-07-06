@@ -95,10 +95,12 @@ def create_item_for_user(
     return create_user_item(db=db, item=item, user_id=user_id)
 
 
-@app.post("/reassign_item/{item_id}/")
+@app.post("/reassign_item/{item_id}/", response_model=schemas.Item)
 def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(get_db)):
     item = db.query(Item).filter(Item.id == item_id).first()
     item.owner_id = new_owner.id
     db.add(item)
     db.commit()
     add_history(db, item, new_owner.id)
+    return item
+
