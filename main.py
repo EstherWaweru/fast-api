@@ -11,6 +11,7 @@ from typing import List, Optional
 
 import schemas
 from config import settings
+from helper import get_password_hash
 
 Base = declarative_base()
 
@@ -35,7 +36,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(50), unique=True, index=True)
-    hashed_password = Column(String(50))
+    hashed_password = Column(String(100))
     is_active = Column(Boolean, default=True)
 
 
@@ -62,8 +63,8 @@ Base.metadata.create_all(bind=engine)
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    fake_hashed_password = user.password + "notreallyhashed"
-    db_user = User(email=user.email, hashed_password=fake_hashed_password)
+    hashed_password = get_password_hash(user.password)
+    db_user = User(email=user.email, hashed_password=hashed_password)
     db.add(db_user)
     db.commit()
     return db_user
@@ -100,9 +101,11 @@ def read_item(item_id: int, q: Optional[str] = None):
 
 @app.post("/users/", response_model=schemas.User)
 def create_user_endpoint(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    user = get_user_by_email(db, email=user.email)
-    if user:
-        raise HTTPException(status_code=400, detail="User with this email already exists")
+    existing_user = get_user_by_email(db, email=user.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=400, detail="User with this email already exists"
+        )
     return create_user(db=db, user=user)
 
 

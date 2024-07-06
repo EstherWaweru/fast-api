@@ -4,3 +4,6 @@ sqlalchemy
 mysqlclient
 pydantic-settings
 black
+passlib
+bcrypt
+alembic
