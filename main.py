@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
+
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -113,7 +114,7 @@ def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(g
     return item
 
 
-@app.patch("/item/{item_id}/", response_model=schemas.Item)
+@app.patch("/items/{item_id}/", response_model=schemas.Item)
 def modify_item_status(
     item_id: int, item_status: schemas.ItemStatus, db: Session = Depends(get_db)
 ):
@@ -124,3 +125,12 @@ def modify_item_status(
     db.add(item)
     db.commit()
     return item
+
+
+@app.get("/items/", response_model=list[schemas.Item])
+def list_items(
+    status: schemas.ItemStatusChoices = Query(schemas.ItemStatusChoices.NEW),
+    db: Session = Depends(get_db),
+):
+    items = db.query(Item).filter(Item.status == status.value).all()
+    return items

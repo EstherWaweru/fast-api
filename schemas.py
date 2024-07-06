@@ -44,9 +44,9 @@ class User(UserBase):
 
 
 class ItemStatusChoices(Enum):
-    NEW = "new"
-    APPROVED = "approved"
-    EOL = "eol"
+    NEW = "NEW"
+    APPROVED = "APPROVED"
+    EOL = "EOL"
 
 
 class ItemStatus(BaseModel):
