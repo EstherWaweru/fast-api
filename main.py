@@ -4,14 +4,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
 
 from typing import List, Optional
 
 import schemas
 from config import settings
 from helper import get_password_hash
+from models import Item, ItemHistory, User
 
 Base = declarative_base()
 
@@ -29,34 +28,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(50), unique=True, index=True)
-    hashed_password = Column(String(100))
-    is_active = Column(Boolean, default=True)
-
-
-class Item(Base):
-    __tablename__ = "items"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(50), index=True)
-    status = Column(String(50))
-    description = Column(String(50))
-    owner_id = Column(Integer)
-
-
-class ItemHistory(Base):
-    __tablename__ = "item_history"
-
-    id = Column(Integer, primary_key=True, index=True)
-    item_id = Column(Integer)
-    old_assignee = Column(Integer)
-    new_assignee = Column(Integer)
 
 
 Base.metadata.create_all(bind=engine)
