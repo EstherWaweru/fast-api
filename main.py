@@ -10,6 +10,7 @@ from typing import List, Optional
 
 import schemas
 from config import settings
+from exception import CustomBaseException
 from helper import get_password_hash
 from models import Item, ItemHistory, User
 
@@ -62,7 +63,17 @@ def get_user_by_email(db: Session, email: str):
 
 
 def get_item_by_id(db: Session, id: int):
-    return db.query(Item).get(id)
+    item = db.query(Item).get(id)
+    # return item
+    if not item:
+        raise CustomBaseException("Item does not exist")
+    return item
+
+
+def add_status_history(db: Session, item):
+    history_entry = ItemHistory(item_id=item.id, status=item.status)
+    db.add(history_entry)
+    db.commit()
 
 
 @app.get("/")
@@ -75,7 +86,10 @@ def read_item(item_id: int, q: Optional[str] = None, db: Session = Depends(get_d
     # TODO: Figure out what to do with  Query parameter passed
     if q:
         return {"item_id": item_id, "q": q}
-    item = get_item_by_id(db, item_id)
+    try:
+        item = get_item_by_id(db, item_id)
+    except CustomBaseException as exc:
+        raise HTTPException(status_code=404, detail=exc.message)
     return item
 
 
@@ -101,9 +115,10 @@ def create_item_for_user(
 
 @app.post("/reassign_item/{item_id}/", response_model=schemas.Item)
 def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(get_db)):
-    item = db.query(Item).get(item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item does not exist")
+    try:
+        item = get_item_by_id(db, item_id)
+    except CustomBaseException as exc:
+        raise HTTPException(status_code=404, detail=exc.message)
     user = db.query(User).get(new_owner.id)
     if not user:
         raise HTTPException(status_code=404, detail="User does not exist")
@@ -118,12 +133,15 @@ def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(g
 def modify_item_status(
     item_id: int, item_status: schemas.ItemStatus, db: Session = Depends(get_db)
 ):
-    item = db.query(Item).get(item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item does not exist")
+    try:
+        item = get_item_by_id(db, item_id)
+    except CustomBaseException as exc:
+        raise HTTPException(status_code=404, detail=exc.message)
     item.status = item_status.status.value
     db.add(item)
     db.commit()
+    # Add history entry
+    add_status_history(db, item)
     return item
 
 
