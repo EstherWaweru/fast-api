@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -84,6 +84,10 @@ def add_history(db: Session, item, new_owner_id):
     db.commit()
 
 
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
 @app.get("/")
 def read_root():
     return {"Hello": "Azure"}
@@ -96,6 +100,9 @@ def read_item(item_id: int, q: Optional[str] = None):
 
 @app.post("/users/", response_model=schemas.User)
 def create_user_endpoint(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, email=user.email)
+    if user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
     return create_user(db=db, user=user)
 
 
