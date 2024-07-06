@@ -11,20 +11,25 @@ from sqlalchemy.orm import relationship
 from typing import List, Optional
 from pydantic import BaseModel
 
+from config import settings
+
 Base = declarative_base()
 
-engine = create_engine('mysql://testuser:pass@localhost/items')
+engine = create_engine(settings.DATABASE_URI)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
 
+
 class ItemBase(BaseModel):
     title: str
     description: Optional[str] = None
 
+
 class ItemCreate(ItemBase):
     pass
+
 
 class Item(ItemBase):
     id: int
@@ -33,14 +38,18 @@ class Item(ItemBase):
     class Config:
         orm_mode = True
 
+
 class UserId(BaseModel):
     id: int
+
 
 class UserBase(BaseModel):
     email: str
 
+
 class UserCreate(UserBase):
     password: str
+
 
 class User(UserBase):
     id: int
@@ -50,6 +59,7 @@ class User(UserBase):
     class Config:
         orm_mode = True
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -57,6 +67,7 @@ class User(Base):
     email = Column(String(50), unique=True, index=True)
     hashed_password = Column(String(50))
     is_active = Column(Boolean, default=True)
+
 
 class Item(Base):
     __tablename__ = "items"
@@ -67,6 +78,7 @@ class Item(Base):
     description = Column(String(50))
     owner_id = Column(Integer)
 
+
 class ItemHistory(Base):
     __tablename__ = "item_history"
 
@@ -74,6 +86,7 @@ class ItemHistory(Base):
     item_id = Column(Integer)
     old_assignee = Column(Integer)
     new_assignee = Column(Integer)
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -86,6 +99,7 @@ def create_user(user: UserCreate):
     db.commit()
     return db_user
 
+
 def create_user_item(item: ItemCreate, user_id: int):
     db = SessionLocal()
     db_item = Item(**item.dict(), owner_id=user_id)
@@ -93,41 +107,42 @@ def create_user_item(item: ItemCreate, user_id: int):
     db.commit()
     return db_item
 
+
 @app.get("/")
 def read_root():
     return {"Hello": "Azure"}
 
+
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Optional[str] = None):
     return {"item_id": item_id, "q": q}
+
 
 @app.post("/users/")
 def create_user_endpoint(user: UserCreate):
     db = SessionLocal()
     return create_user(user=user)
 
+
 @app.post("/users/{user_id}/items/")
 def create_item_for_user(user_id: int, item: ItemCreate):
     db = SessionLocal()
     return create_user_item(item=item, user_id=user_id)
 
+
 @app.post("/reassign_item/{item_id}/")
 def assign_item(item_id: int, new_owner: UserId):
     db = SessionLocal()
-    item = db.query(Item).filter(Item.id==item_id).first()
+    item = db.query(Item).filter(Item.id == item_id).first()
     item.owner_id = new_owner.id
     db.add(item)
     db.commit()
     add_history(db, item, new_owner.id)
 
+
 def add_history(db, item, new_owner_id):
     history_entry = ItemHistory(
-            item_id = item.id,
-            old_assignee = item.owner_id,
-            new_assignee = new_owner_id
-            )
+        item_id=item.id, old_assignee=item.owner_id, new_assignee=new_owner_id
+    )
     db.add(history_entry)
     db.commit()
-
-
-
