@@ -1,16 +1,15 @@
-from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from typing import List, Optional
-from pydantic import BaseModel
 
+import schemas
 from config import settings
 
 Base = declarative_base()
@@ -22,42 +21,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 app = FastAPI()
 
 
-class ItemBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-
-
-class ItemCreate(ItemBase):
-    pass
-
-
-class Item(ItemBase):
-    id: int
-    owner_id: int
-
-    class Config:
-        orm_mode = True
-
-
-class UserId(BaseModel):
-    id: int
-
-
-class UserBase(BaseModel):
-    email: str
-
-
-class UserCreate(UserBase):
-    password: str
-
-
-class User(UserBase):
-    id: int
-    is_active: bool
-    items: List[Item] = []
-
-    class Config:
-        orm_mode = True
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class User(Base):
@@ -91,8 +61,7 @@ class ItemHistory(Base):
 Base.metadata.create_all(bind=engine)
 
 
-def create_user(user: UserCreate):
-    db = SessionLocal()
+def create_user(db: Session, user: schemas.UserCreate):
     fake_hashed_password = user.password + "notreallyhashed"
     db_user = User(email=user.email, hashed_password=fake_hashed_password)
     db.add(db_user)
@@ -100,12 +69,19 @@ def create_user(user: UserCreate):
     return db_user
 
 
-def create_user_item(item: ItemCreate, user_id: int):
-    db = SessionLocal()
+def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
     db_item = Item(**item.dict(), owner_id=user_id)
     db.add(db_item)
     db.commit()
     return db_item
+
+
+def add_history(db: Session, item, new_owner_id):
+    history_entry = ItemHistory(
+        item_id=item.id, old_assignee=item.owner_id, new_assignee=new_owner_id
+    )
+    db.add(history_entry)
+    db.commit()
 
 
 @app.get("/")
@@ -118,31 +94,22 @@ def read_item(item_id: int, q: Optional[str] = None):
     return {"item_id": item_id, "q": q}
 
 
-@app.post("/users/")
-def create_user_endpoint(user: UserCreate):
-    db = SessionLocal()
-    return create_user(user=user)
+@app.post("/users/", response_model=schemas.User)
+def create_user_endpoint(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    return create_user(db=db, user=user)
 
 
 @app.post("/users/{user_id}/items/")
-def create_item_for_user(user_id: int, item: ItemCreate):
-    db = SessionLocal()
-    return create_user_item(item=item, user_id=user_id)
+def create_item_for_user(
+    user_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)
+):
+    return create_user_item(db=db, item=item, user_id=user_id)
 
 
 @app.post("/reassign_item/{item_id}/")
-def assign_item(item_id: int, new_owner: UserId):
-    db = SessionLocal()
+def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(get_db)):
     item = db.query(Item).filter(Item.id == item_id).first()
     item.owner_id = new_owner.id
     db.add(item)
     db.commit()
     add_history(db, item, new_owner.id)
-
-
-def add_history(db, item, new_owner_id):
-    history_entry = ItemHistory(
-        item_id=item.id, old_assignee=item.owner_id, new_assignee=new_owner_id
-    )
-    db.add(history_entry)
-    db.commit()
