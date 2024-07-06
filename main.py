@@ -92,15 +92,22 @@ def create_user_endpoint(user: schemas.UserCreate, db: Session = Depends(get_db)
 def create_item_for_user(
     user_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)
 ):
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User does not exist")
     return create_user_item(db=db, item=item, user_id=user_id)
 
 
 @app.post("/reassign_item/{item_id}/", response_model=schemas.Item)
 def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(get_db)):
     item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item does not exist")
+    user = db.query(User).get(new_owner.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User does not exist")
     item.owner_id = new_owner.id
     db.add(item)
     db.commit()
     add_history(db, item, new_owner.id)
     return item
-
