@@ -89,14 +89,22 @@ def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
 
+def get_item_by_id(db: Session, id: int):
+    return db.query(Item).get(id)
+
+
 @app.get("/")
 def read_root():
     return {"Hello": "Azure"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Optional[str] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/items/{item_id}", response_model=schemas.Item)
+def read_item(item_id: int, q: Optional[str] = None, db: Session = Depends(get_db)):
+    # TODO: Figure out what to do with  Query parameter passed
+    if q:
+        return {"item_id": item_id, "q": q}
+    item = get_item_by_id(db, item_id)
+    return item
 
 
 @app.post("/users/", response_model=schemas.User)
