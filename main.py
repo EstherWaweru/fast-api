@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 
-
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+
 from sqlalchemy.orm import sessionmaker, Session
 
 
@@ -12,9 +11,9 @@ import schemas
 from config import settings
 from exception import CustomBaseException
 from helper import get_password_hash
-from models import Item, ItemHistory, User
 
-Base = declarative_base()
+
+from models import Item, ItemHistory, User, Base
 
 engine = create_engine(settings.DATABASE_URI)
 

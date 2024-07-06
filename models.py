@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -9,8 +12,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(50), unique=True, index=True)
-    hashed_password = Column(String(50))
+    hashed_password = Column(String(100))
     is_active = Column(Boolean, default=True)
+    items = relationship("Item", back_populates="owner")
 
 
 class Item(Base):
@@ -20,13 +24,16 @@ class Item(Base):
     title = Column(String(50), index=True)
     status = Column(String(50))
     description = Column(String(50))
-    owner_id = Column(Integer)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    owner = relationship("User", back_populates="items")
 
 
 class ItemHistory(Base):
     __tablename__ = "item_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    item_id = Column(Integer)
-    old_assignee = Column(Integer)
-    new_assignee = Column(Integer)
+    item_id = Column(Integer, ForeignKey("items.id"))
+    old_assignee = Column(Integer, ForeignKey("users.id"))
+    new_assignee = Column(Integer, ForeignKey("users.id"))
+    status = Column(String(50), index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)

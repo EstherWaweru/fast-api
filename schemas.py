@@ -16,7 +16,7 @@ class ItemCreate(ItemBase):
 class Item(ItemBase):
     id: int
     owner_id: int
-    status: str
+    status: Optional[str] = None
 
     class Config:
         orm_mode = True
