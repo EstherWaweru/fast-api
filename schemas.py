@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -14,6 +16,7 @@ class ItemCreate(ItemBase):
 class Item(ItemBase):
     id: int
     owner_id: int
+    status: str
 
     class Config:
         orm_mode = True
@@ -38,3 +41,13 @@ class User(UserBase):
 
     class Config:
         orm_mode = True
+
+
+class ItemStatusChoices(Enum):
+    NEW = "new"
+    APPROVED = "approved"
+    EOL = "eol"
+
+
+class ItemStatus(BaseModel):
+    status: ItemStatusChoices

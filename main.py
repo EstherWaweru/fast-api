@@ -100,7 +100,7 @@ def create_item_for_user(
 
 @app.post("/reassign_item/{item_id}/", response_model=schemas.Item)
 def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(get_db)):
-    item = db.query(Item).filter(Item.id == item_id).first()
+    item = db.query(Item).get(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item does not exist")
     user = db.query(User).get(new_owner.id)
@@ -110,4 +110,17 @@ def assign_item(item_id: int, new_owner: schemas.UserId, db: Session = Depends(g
     db.add(item)
     db.commit()
     add_history(db, item, new_owner.id)
+    return item
+
+
+@app.patch("/item/{item_id}/", response_model=schemas.Item)
+def modify_item_status(
+    item_id: int, item_status: schemas.ItemStatus, db: Session = Depends(get_db)
+):
+    item = db.query(Item).get(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item does not exist")
+    item.status = item_status.status.value
+    db.add(item)
+    db.commit()
     return item
