@@ -36,3 +36,10 @@ If the DB is accessible, tables will be automatically created when the app start
 
 ### auto generated docs
 http://127.0.0.1:8000/docs
+
+## Suggestions
+- Handle migrations for any changes in the database
+- Review and change the deprecated orm_mode
+- Add unit tests
+- Integrate tools for scanning vulnerabilities in the codebase and libraries used
+

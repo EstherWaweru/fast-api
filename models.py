@@ -22,7 +22,7 @@ class Item(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(50), index=True)
-    status = Column(String(50))
+    status = Column(String(50), index=True)
     description = Column(String(50))
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="items")
@@ -35,5 +35,5 @@ class ItemHistory(Base):
     item_id = Column(Integer, ForeignKey("items.id"))
     old_assignee = Column(Integer, ForeignKey("users.id"))
     new_assignee = Column(Integer, ForeignKey("users.id"))
-    status = Column(String(50), index=True)
+    status = Column(String(50))
     timestamp = Column(DateTime, default=datetime.utcnow)
